@@ -13,7 +13,7 @@ load_dotenv('/workspaces/interview-chat/.env')
 # https://python.langchain.com/v0.2/docs/integrations/document_loaders/
 
 def main():
-    st.title("PDFファイルをアップロード📁 ")
+    st.title("ドキュメントをアップロード📁 ")
 
     # emmbeddingsのモデルを取得
     embeddings = None
@@ -35,15 +35,23 @@ def main():
 
 
 
-    # アップロード pdf ファイル...
-    uploaded_files = st.file_uploader("PDFファイル", type=["pdf"], accept_multiple_files=True)
+    supported_extensions = ["pdf", "csv", "txt", "md", "markdown", "xls", "xlsx", "xlsm"]
+    uploaded_files = st.file_uploader(
+        "PDF/CSV/Markdown/TXT/Excelファイル",
+        type=supported_extensions,
+        accept_multiple_files=True
+    )
 
     # ファイルの数だけ処理を行う
-    for i, pdf in enumerate(uploaded_files):
+    for i, uploaded in enumerate(uploaded_files):
         with st.spinner(f'{i+1}/{len(uploaded_files)} 処理中...'):
-            # 1. PDFデータ読み込み
-            text=read_pdf_data(pdf)
-            st.write("1. PDFデータ読み込み")
+            # 1. ドキュメントデータ読み込み
+            try:
+                text = read_document_data(uploaded)
+            except ValueError as exc:
+                st.warning(f"{uploaded.name}: {exc}")
+                continue
+            st.write("1. ドキュメントデータ読み込み")
 
             # 2. データをチャンクに小分けにする
             docs_chunks=split_data(text)

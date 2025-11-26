@@ -7,6 +7,9 @@ from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.prompts import ChatPromptTemplate
 
 import asyncio
+from pathlib import Path
+
+import pandas as pd
 from tqdm import tqdm
 from pypdf import PdfReader
 
@@ -29,6 +32,36 @@ def read_pdf_data(pdf_file):
     for page in pdf_page.pages:
         text += page.extract_text()
     return text
+
+
+def read_document_data(uploaded_file):
+    """UploadedFileから拡張子に応じてテキストを抽出"""
+
+    suffix = Path(uploaded_file.name).suffix.lower()
+
+    if suffix == ".pdf":
+        uploaded_file.seek(0)
+        return read_pdf_data(uploaded_file)
+
+    if suffix in {".txt", ".md", ".markdown"}:
+        uploaded_file.seek(0)
+        return uploaded_file.read().decode("utf-8", errors="ignore")
+
+    if suffix == ".csv":
+        uploaded_file.seek(0)
+        df = pd.read_csv(uploaded_file)
+        return df.to_csv(index=False)
+
+    if suffix in {".xls", ".xlsx", ".xlsm"}:
+        uploaded_file.seek(0)
+        excel_file = pd.ExcelFile(uploaded_file)
+        sheet_texts = []
+        for sheet_name in excel_file.sheet_names:
+            sheet_df = excel_file.parse(sheet_name)
+            sheet_texts.append(f"### {sheet_name}\n{sheet_df.to_csv(index=False)}")
+        return "\n\n".join(sheet_texts)
+
+    raise ValueError(f"Unsupported file type: {suffix}")
 
 # 読み込んだテキストをチャンク単位で小分け
 def split_data(text):
