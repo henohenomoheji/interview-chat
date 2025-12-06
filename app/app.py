@@ -17,8 +17,12 @@ from langchain_core.messages import (
 USER_NAME = "user"
 ASSISTANT_NAME = "assistant"
 load_dotenv('/workspaces/interview-chat/.env')
+
+
+
 def main():
     st.title("Interview Chat")
+
         # emmbeddingsのモデルを取得
     embeddings = None
     # if os.getenv('AZURE_OPENAI_API_KEY') != "":
@@ -105,6 +109,7 @@ def main():
             HumanMessage(content=user_msg),
             AIMessage(content=response)
         ])
+    
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,7 @@ from langchain.document_loaders.sitemap import SitemapLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.prompts import ChatPromptTemplate
-
+import streamlit.components.v1 as stc
 import asyncio
 from pathlib import Path
 
@@ -139,3 +139,67 @@ def get_chain(model):
     )
     chain = prompt | model
     return chain
+
+def embedding_dify_iframe():
+    """Embed the Dify iframe inside a draggable container."""
+
+    html_code = """
+        <div id="dify-draggable" style="position: fixed; top: 50px; right: 32px; width: 300px; height: 500px; z-index: 2147483647; box-shadow: 0 rgba(0, 0, 0, 0.1); border-radius: 18px; overflow: hidden; background: rgba(0,0,0,0.1); backdrop-filter: blur(1px);">
+            <div id="dify-draggable-header" style="cursor: grab; padding: 5px 5px; color: ffff; font-weight: 500; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+            </div>
+            <iframe
+                src="https://udify.app/chatbot/JHLGyHGHXwcWHj8D"
+                style="width: 100%; height: calc(100% - 20px); border: none;"
+                allow="microphone">
+            </iframe>
+        </div>
+        <script>
+            (function() {
+                const widget = document.getElementById('dify-draggable');
+                const header = document.getElementById('dify-draggable-header');
+                if (!widget || !header) return;
+
+                let startX = 0;
+                let startY = 0;
+                let startLeft = 0;
+                let startTop = 0;
+                let isDragging = false;
+
+                const pointerDown = (event) => {
+                    event.preventDefault();
+                    isDragging = true;
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    const rect = widget.getBoundingClientRect();
+                    startLeft = rect.left;
+                    startTop = rect.top;
+                    header.setPointerCapture(event.pointerId);
+                    widget.style.right = 'auto';
+                    widget.style.bottom = 'auto';
+                    widget.style.cursor = 'grabbing';
+                };
+
+                const pointerMove = (event) => {
+                    if (!isDragging) return;
+                    const dx = event.clientX - startX;
+                    const dy = event.clientY - startY;
+                    widget.style.left = `${startLeft + dx}px`;
+                    widget.style.top = `${startTop + dy}px`;
+                };
+
+                const pointerUp = (event) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    header.releasePointerCapture(event.pointerId);
+                    widget.style.cursor = 'grab';
+                };
+
+                header.addEventListener('pointerdown', pointerDown);
+                header.addEventListener('pointermove', pointerMove);
+                header.addEventListener('pointerup', pointerUp);
+                header.addEventListener('pointerleave', pointerUp);
+            })();
+        </script>
+    """
+
+    stc.html(html_code, height=500,width=900)
