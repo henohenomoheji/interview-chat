@@ -95,7 +95,7 @@ def build_dual_axis_chart(
 
 st.set_page_config(page_title=PAGE_TITLE, layout="wide")
 st.title(PAGE_TITLE)
-st.caption("Cafe PL データを使った財務指標の可視化")
+st.caption("PL データを使った財務指標の可視化")
 
 # データ読み込み
 df = load_data(DATA_PATH)
@@ -104,62 +104,154 @@ with st.sidebar:
     st.header("ページ選択")
     st.write("分析グラフ")
 
-# 上：財務項目フィルタ
-st.markdown("### 上：財務項目を選択")
-financial_items = sorted(df["財務項目"].unique().tolist())
-selected_financial = st.multiselect("財務項目（複数選択可）", options=financial_items, default=financial_items)
 
-filtered = df.copy()
-if selected_financial:
-    filtered = filtered[filtered["財務項目"].isin(selected_financial)]
+tab_line, tab_heatmap, tab_stack = st.tabs(["棒 / 折れ線 / 面", "ヒートマップ", "積み上げグラフ"])
 
-if filtered.empty:
-    st.warning("選択条件に一致するデータがありません。条件を変更してください。")
-    st.stop()
+with tab_line:
+    financial_items = sorted(df["財務項目"].unique().tolist())
+    selected_financial = st.multiselect("財務項目（複数選択可）", options=financial_items, default=financial_items)
 
-# 中：バージョン、軸ラベル、グラフ種類（軸右 / 軸左）
-st.markdown("### 中：表示パラメータ")
+    filtered = df.copy()
+    if selected_financial:
+        filtered = filtered[filtered["財務項目"].isin(selected_financial)]
 
-version_options = sorted(filtered["バージョン"].unique().tolist())
-y_axis_options = ["単価", "合計金額", "パーセンテージ"]
-chart_type_options = ["棒グラフ", "面グラフ", "折れ線グラフ"]
+    if filtered.empty:
+        st.warning("選択条件に一致するデータがありません。条件を変更してください。")
+        st.stop()
 
-st.markdown("#### 軸右")
-r1, r2, r3 = st.columns(3)
-right_versions = r1.multiselect("バージョン（軸右）", options=version_options, default=version_options, key="right_versions")
-right_y_axis = r2.selectbox("軸ラベル（軸右）", y_axis_options, index=1, key="right_y_axis")
-right_chart_type = r3.selectbox("グラフ種類（軸右）", chart_type_options, index=0, key="right_chart_type")
 
-st.markdown("#### 軸左")
-l1, l2, l3 = st.columns(3)
-left_versions = l1.multiselect("バージョン（軸左）", options=version_options, default=version_options, key="left_versions")
-left_y_axis = l2.selectbox("軸ラベル（軸左）", y_axis_options, index=0, key="left_y_axis")
-left_chart_type = l3.selectbox("グラフ種類（軸左）", chart_type_options, index=0, key="left_chart_type")
+    version_options = sorted(filtered["バージョン"].unique().tolist())
+    y_axis_options = ["単価", "合計金額", "パーセンテージ"]
+    chart_type_options = ["棒グラフ", "面グラフ", "折れ線グラフ"]
 
-left_df = (
-    filtered[filtered["バージョン"].isin(left_versions) & (filtered["単位"] == left_y_axis)]
-    if left_versions
-    else pd.DataFrame(columns=filtered.columns)
-)
-right_df = (
-    filtered[filtered["バージョン"].isin(right_versions) & (filtered["単位"] == right_y_axis)]
-    if right_versions
-    else pd.DataFrame(columns=filtered.columns)
-)
+    lcol, rcol = st.columns(2)
+    with lcol:
+        st.markdown("##### 軸左")
+        l1, l2 = st.columns(2)
+        left_versions = l1.multiselect(
+            "バージョン（軸左）", options=version_options, default=version_options, key="left_versions"
+        )
+        left_y_axis = l2.selectbox("軸ラベル（軸左）", y_axis_options, index=0, key="left_y_axis")
+        left_chart_type = st.selectbox("グラフ種類（軸左）", chart_type_options, index=0, key="left_chart_type")
 
-if left_df.empty and right_df.empty:
-    st.warning("選択条件に一致するデータがありません。条件を変更してください。")
-    st.stop()
+    with rcol:
+        st.markdown("##### 軸右")
+        r1, r2 = st.columns(2)
+        right_versions = r1.multiselect(
+            "バージョン（軸右）", options=version_options, default=version_options, key="right_versions"
+        )
+        right_y_axis = r2.selectbox("軸ラベル（軸右）", y_axis_options, index=1, key="right_y_axis")
+        right_chart_type = st.selectbox("グラフ種類（軸右）", chart_type_options, index=0, key="right_chart_type")
 
-# 下：グラフ＋データ
-st.markdown("### 下：可視化結果とデータ")
-fig = build_dual_axis_chart(
-    filtered,
-    axis_col="年月表示",
-    left_cfg={"data": left_df, "chart_type": left_chart_type, "label": left_y_axis},
-    right_cfg={"data": right_df, "chart_type": right_chart_type, "label": right_y_axis},
-)
-st.plotly_chart(fig, use_container_width=True)
+    left_df = (
+        filtered[filtered["バージョン"].isin(left_versions) & (filtered["単位"] == left_y_axis)]
+        if left_versions
+        else pd.DataFrame(columns=filtered.columns)
+    )
+    right_df = (
+        filtered[filtered["バージョン"].isin(right_versions) & (filtered["単位"] == right_y_axis)]
+        if right_versions
+        else pd.DataFrame(columns=filtered.columns)
+    )
+
+    if left_df.empty and right_df.empty:
+        st.warning("選択条件に一致するデータがありません。条件を変更してください。")
+    else:
+        fig = build_dual_axis_chart(
+            filtered,
+            axis_col="年月表示",
+            left_cfg={"data": left_df, "chart_type": left_chart_type, "label": left_y_axis},
+            right_cfg={"data": right_df, "chart_type": right_chart_type, "label": right_y_axis},
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+with tab_heatmap:
+    hcol1, hcol2, hcol3 = st.columns(3)
+    heatmap_y_axis = hcol1.selectbox("Y軸の項目", options=["カテゴリ", "チャネル"], index=0)
+    heatmap_value = hcol2.selectbox("値の種類", options=y_axis_options, index=1, key="heatmap_value")
+    heatmap_versions = hcol3.multiselect(
+        "バージョン（ヒートマップ）", options=version_options, default=version_options, key="heatmap_versions"
+    )
+
+    heatmap_df = filtered.copy()
+    if heatmap_versions:
+        heatmap_df = heatmap_df[heatmap_df["バージョン"].isin(heatmap_versions)]
+    heatmap_df = heatmap_df[heatmap_df["単位"] == heatmap_value]
+
+    if heatmap_df.empty:
+        st.info("ヒートマップを表示できるデータがありません。選択を見直してください。")
+    else:
+        x_order = heatmap_df.sort_values("年月")["年月表示"].dropna().unique().tolist()
+        y_order = sorted(heatmap_df[heatmap_y_axis].dropna().unique().tolist())
+
+        pivot = (
+            heatmap_df.pivot_table(
+                index=heatmap_y_axis,
+                columns="年月表示",
+                values="値",
+                aggfunc="sum",
+                fill_value=0,
+            )
+            .reindex(index=y_order, columns=x_order)
+        )
+
+        heatmap_fig = go.Figure(
+            data=go.Heatmap(
+                z=pivot.values,
+                x=pivot.columns,
+                y=pivot.index,
+                colorscale="RdBu",
+                reversescale=True,
+                colorbar_title=heatmap_value,
+            )
+        )
+        heatmap_fig.update_layout(
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis_title="年月",
+            yaxis_title=heatmap_y_axis,
+        )
+        st.plotly_chart(heatmap_fig, use_container_width=True)
+
+with tab_stack:
+    scol1, scol2, scol3 = st.columns(3)
+    stack_y_axis = scol1.selectbox("値の種類（Y軸）", options=y_axis_options, index=1, key="stack_y_axis")
+    stack_by = scol2.selectbox("積み上げ項目", options=["カテゴリ", "チャネル", "財務項目"], index=0)
+    stack_versions = scol3.multiselect(
+        "バージョン（積み上げグラフ）", options=version_options, default=version_options, key="stack_versions"
+    )
+
+    stack_df = filtered.copy()
+    if stack_versions:
+        stack_df = stack_df[stack_df["バージョン"].isin(stack_versions)]
+    stack_df = stack_df[stack_df["単位"] == stack_y_axis]
+
+    if stack_df.empty:
+        st.info("積み上げグラフを表示できるデータがありません。選択を見直してください。")
+    else:
+        grouped_stack = (
+            stack_df.groupby(["年月", "年月表示", "バージョン", stack_by], as_index=False)["値"]
+            .sum()
+            .sort_values(["年月", "バージョン"])
+        )
+        grouped_stack["年月×バージョン"] = grouped_stack["年月表示"] + "｜" + grouped_stack["バージョン"]
+
+        x_order = (
+            grouped_stack.sort_values(["年月", "バージョン"])["年月×バージョン"].dropna().unique().tolist()
+        )
+        stack_fig = px.bar(
+            grouped_stack,
+            x="年月×バージョン",
+            y="値",
+            color=stack_by,
+            category_orders={"年月×バージョン": x_order},
+            labels={"年月×バージョン": "年月×バージョン", "値": stack_y_axis},
+        )
+        stack_fig.update_layout(
+            barmode="stack",
+            margin=dict(l=10, r=10, t=10, b=10),
+            legend_title=stack_by,
+        )
+        st.plotly_chart(stack_fig, use_container_width=True)
 
 st.subheader("データ表示（先頭100件）")
 st.dataframe(filtered.head(100), use_container_width=True, height=420)
