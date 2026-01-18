@@ -51,15 +51,15 @@ def resolve_stack_by(
     if stack_dim == "財務項目":
         return "財務項目"
     if stack_dim == "チャネル":
-        if selected_channel_lv1 == "すべて":
+        if selected_channel_lv1 == "-":
             return "channel_lv1"
-        if selected_channel_lv2 == "すべて":
+        if selected_channel_lv2 == "-":
             return "channel_lv2"
         return "channel_lv3"
     if stack_dim == "カテゴリ":
-        if selected_category_lv1 == "すべて":
+        if selected_category_lv1 == "-":
             return "category_lv1"
-        if selected_category_lv2 == "すべて":
+        if selected_category_lv2 == "-":
             return "category_lv2"
         return "category_lv3"
     raise ValueError(stack_dim)
@@ -187,6 +187,14 @@ df = load_data(DATA_PATH)
 with st.sidebar:
 
     st.markdown("### フィルター")
+    company_options = ["-"] + sorted(df["company"].dropna().unique().tolist())
+    default_company = "Starbacks" if "Starbacks" in company_options else "-"
+    selected_company = st.selectbox(
+        "company",
+        options=company_options,
+        index=company_options.index(default_company),
+        key="company",
+    )
     min_date = df["年月"].min()
     max_date = df["年月"].max()
     period_range = st.slider(
@@ -198,38 +206,38 @@ with st.sidebar:
         step=pd.Timedelta(days=31),
     )
 
-    channel_lv1_options = ["すべて"] + sorted(df["channel_lv1"].dropna().unique().tolist())
+    channel_lv1_options = ["-"] + sorted(df["channel_lv1"].dropna().unique().tolist())
     selected_channel_lv1 = st.selectbox("channel_lv1", options=channel_lv1_options, index=0, key="channel_lv1")
 
     channel_lv2_base = df
-    if selected_channel_lv1 != "すべて":
+    if selected_channel_lv1 != "-":
         channel_lv2_base = channel_lv2_base[channel_lv2_base["channel_lv1"] == selected_channel_lv1]
-    channel_lv2_options = ["すべて"] + sorted(channel_lv2_base["channel_lv2"].dropna().unique().tolist())
+    channel_lv2_options = ["-"] + sorted(channel_lv2_base["channel_lv2"].dropna().unique().tolist())
     selected_channel_lv2 = st.selectbox("channel_lv2", options=channel_lv2_options, index=0, key="channel_lv2")
 
     channel_lv3_base = channel_lv2_base
-    if selected_channel_lv2 != "すべて":
+    if selected_channel_lv2 != "-":
         channel_lv3_base = channel_lv3_base[channel_lv3_base["channel_lv2"] == selected_channel_lv2]
-    channel_lv3_options = ["すべて"] + sorted(channel_lv3_base["channel_lv3"].dropna().unique().tolist())
+    channel_lv3_options = ["-"] + sorted(channel_lv3_base["channel_lv3"].dropna().unique().tolist())
     selected_channel_lv3 = st.selectbox("channel_lv3", options=channel_lv3_options, index=0, key="channel_lv3")
 
-    category_lv1_options = ["すべて"] + sorted(df["category_lv1"].dropna().unique().tolist())
+    category_lv1_options = ["-"] + sorted(df["category_lv1"].dropna().unique().tolist())
     selected_category_lv1 = st.selectbox(
         "category_lv1", options=category_lv1_options, index=0, key="category_lv1"
     )
 
     category_lv2_base = df
-    if selected_category_lv1 != "すべて":
+    if selected_category_lv1 != "-":
         category_lv2_base = category_lv2_base[category_lv2_base["category_lv1"] == selected_category_lv1]
-    category_lv2_options = ["すべて"] + sorted(category_lv2_base["category_lv2"].dropna().unique().tolist())
+    category_lv2_options = ["-"] + sorted(category_lv2_base["category_lv2"].dropna().unique().tolist())
     selected_category_lv2 = st.selectbox(
         "category_lv2", options=category_lv2_options, index=0, key="category_lv2"
     )
 
     category_lv3_base = category_lv2_base
-    if selected_category_lv2 != "すべて":
+    if selected_category_lv2 != "-":
         category_lv3_base = category_lv3_base[category_lv3_base["category_lv2"] == selected_category_lv2]
-    category_lv3_options = ["すべて"] + sorted(category_lv3_base["category_lv3"].dropna().unique().tolist())
+    category_lv3_options = ["-"] + sorted(category_lv3_base["category_lv3"].dropna().unique().tolist())
     selected_category_lv3 = st.selectbox(
         "category_lv3", options=category_lv3_options, index=0, key="category_lv3"
     )
@@ -242,6 +250,7 @@ filtered_df = filtered_df[
 ]
 
 for col, selected in [
+    ("company", selected_company),
     ("channel_lv1", selected_channel_lv1),
     ("channel_lv2", selected_channel_lv2),
     ("channel_lv3", selected_channel_lv3),
@@ -249,7 +258,7 @@ for col, selected in [
     ("category_lv2", selected_category_lv2),
     ("category_lv3", selected_category_lv3),
 ]:
-    if selected != "すべて":
+    if selected != "-":
         filtered_df = filtered_df[filtered_df[col] == selected]
 
 if filtered_df.empty:
@@ -523,16 +532,16 @@ with tab_heatmap:
         st.info("ヒートマップを表示できるデータがありません。選択を見直してください。")
     else:
         if dimension_mode == "チャネル":
-            if selected_channel_lv1 == "すべて":
+            if selected_channel_lv1 == "-":
                 heatmap_y_axis = "channel_lv1"
-            elif selected_channel_lv2 == "すべて":
+            elif selected_channel_lv2 == "-":
                 heatmap_y_axis = "channel_lv2"
             else:
                 heatmap_y_axis = "channel_lv3"
         else:
-            if selected_category_lv1 == "すべて":
+            if selected_category_lv1 == "-":
                 heatmap_y_axis = "category_lv1"
-            elif selected_category_lv2 == "すべて":
+            elif selected_category_lv2 == "-":
                 heatmap_y_axis = "category_lv2"
             else:
                 heatmap_y_axis = "category_lv3"
@@ -567,4 +576,3 @@ with tab_heatmap:
             yaxis_title=heatmap_y_axis,
         )
         st.plotly_chart(heatmap_fig, use_container_width=True)
-
